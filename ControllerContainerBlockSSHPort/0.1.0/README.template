@@ -1,0 +1,12 @@
+# <spec.name>
+
+<spec.description>
+
+# Settings
+
+Rego parameters:
+
+```yaml
+<spec.parameters, with `parameters` on the first line substituted with `settings`>
+```
+
