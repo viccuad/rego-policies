@@ -1,0 +1,59 @@
+on:
+  push:
+    tags:
+      - "*/v*"
+
+name: Release policy
+
+jobs:
+  calculate-policy-from-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      policy-working-dir: ${{ steps.calculate-vars.outputs.policy_working_dir }}
+      policy-version: ${{ steps.calculate-vars.outputs.policy_version }}
+      policy-name: ${{ steps.calculate-vars.outputs.policy_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: calculate-vars
+        shell: bash
+        run: |
+          # we expect a tag on the form of: ControllerContainerBlockSSHPort/v0.1.0
+          # and want:
+          #   policy_working_dir="policies/ControllerContainerBlockSSHPort"
+          #   policy_version="0.1.0"
+             
+          policy_name=$( echo ${{ github.ref_name }} | sed 's/\(.*\)\/\(.*\)$/\1/' )
+          echo "policy_name=$policy_name" >> $GITHUB_OUTPUT
+          policy_working_dir=policies/"$policy_name"
+          echo "policy_working_dir=$policy_working_dir" >> $GITHUB_OUTPUT
+          echo "policy_version=$( echo ${{ github.ref_name }} | sed 's/\(.*\)\/\(.*\)$/\2/' | cut -c2- )" >> $GITHUB_OUTPUT
+          if [ ! -d "$policy_working_dir" ]; then
+            echo "$policy_working_dir does not exist, policy not found";
+            exit 1;
+          fi
+
+  unit-tests:
+    needs: calculate-policy-from-tag
+    name: run unit tests and linters
+    uses: kubewarden/github-actions/.github/workflows/reusable-test-policy-rego.yml@v3.4.0
+    with:
+      policy-working-dir: ${{ needs.calculate-policy-from-tag.outputs.policy-working-dir }}
+      policy-version: ${{ needs.calculate-policy-from-tag.outputs.policy-version }}
+
+  release:
+    needs: [unit-tests, calculate-policy-from-tag]
+    permissions:
+      # Required to create GH releases
+      contents: write
+      # Required to push to GHCR
+      packages: write
+      # Required by cosign keyless signing
+      id-token: write
+    concurrency:
+      group: release-policy # only allow 1 release job of "release-policy" concurrently
+      cancel-in-progress: false
+    uses: kubewarden/github-actions/.github/workflows/reusable-release-policy-rego.yml@v3.4.0
+    with:
+      oci-target: ghcr.io/${{ github.repository_owner }}/policies/${{ needs.calculate-policy-from-tag.outputs.policy-name }}
+      policy-working-dir: ${{ needs.calculate-policy-from-tag.outputs.policy-working-dir }}
+      policy-version: ${{ needs.calculate-policy-from-tag.outputs.policy-version }}
