@@ -11,7 +11,7 @@ jobs:
     outputs:
       policy-working-dir: ${{ steps.calculate-vars.outputs.policy_working_dir }}
       policy-version: ${{ steps.calculate-vars.outputs.policy_version }}
-      policy-name: ${{ steps.calculate-vars.outputs.policy_name }}
+      policy-id: ${{ steps.calculate-vars.outputs.policy_id }}
     steps:
       - uses: actions/checkout@v4
       - id: calculate-vars
@@ -21,12 +21,16 @@ jobs:
           # and want:
           #   policy_working_dir="policies/ControllerContainerBlockSSHPort"
           #   policy_version="0.1.0"
-             
-          policy_name=$( echo ${{ github.ref_name }} | sed 's/\(.*\)\/\(.*\)$/\1/' )
-          echo "policy_name=$policy_name" >> $GITHUB_OUTPUT
-          policy_working_dir=policies/"$policy_name"
+          #   policy_id="controller-container-block-ssh-port" # from metadata.yml
+          policy_dir_name=$( echo ${{ github.ref_name }} | sed 's/\(.*\)\/\(.*\)$/\1/' )
+          policy_working_dir=policies/"$policy_dir_name"
+          policy_ociUrl=$(yq -r '.annotations."io.kubewarden.policy.ociUrl"' $policy_working_dir/metadata.yml)
+          policy_id=${policy_ociUrl##*/}
+
+          echo "policy_id=$policy_id" >> $GITHUB_OUTPUT
           echo "policy_working_dir=$policy_working_dir" >> $GITHUB_OUTPUT
           echo "policy_version=$( echo ${{ github.ref_name }} | sed 's/\(.*\)\/\(.*\)$/\2/' | cut -c2- )" >> $GITHUB_OUTPUT
+
           if [ ! -d "$policy_working_dir" ]; then
             echo "$policy_working_dir does not exist, policy not found";
             exit 1;
@@ -36,6 +40,7 @@ jobs:
     needs: calculate-policy-from-tag
     name: run unit tests and linters
     uses: viccuad/github-actions/.github/workflows/reusable-test-policy-rego.yml@main
+    # TODO is this running check-artifacthub correctly?
     with:
       policy-working-dir: ${{ needs.calculate-policy-from-tag.outputs.policy-working-dir }}
       policy-version: ${{ needs.calculate-policy-from-tag.outputs.policy-version }}
@@ -54,6 +59,6 @@ jobs:
       cancel-in-progress: false
     uses: viccuad/github-actions/.github/workflows/reusable-release-policy-rego.yml@main
     with:
-      oci-target: ghcr.io/${{ github.repository_owner }}/policies/${{ needs.calculate-policy-from-tag.outputs.policy-name }}
+      oci-target: ghcr.io/${{ github.repository_owner }}/policies/${{ needs.calculate-policy-from-tag.outputs.policy-id }}
       policy-working-dir: ${{ needs.calculate-policy-from-tag.outputs.policy-working-dir }}
       policy-version: ${{ needs.calculate-policy-from-tag.outputs.policy-version }}
