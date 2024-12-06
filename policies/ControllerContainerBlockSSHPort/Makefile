@@ -2,7 +2,7 @@
 POLICY_TYPE ?= gatekeeper
 SOURCE_FILES := $(shell find . -type f -name '*.rego')
 
-VERSION ?= $(shell yq -r '.version' artifacthub-pkg.yml)
+VERSION ?= $(shell sed --posix -n -e 's,^version\:\ \(.*\),\1,p' artifacthub-pkg.yml)
 
 policy.wasm: $(SOURCE_FILES)
 ifeq ($(POLICY_TYPE), gatekeeper)
