@@ -4,33 +4,33 @@
 #
 # This config can be saved to its default location with:
 #   kwctl scaffold artifacthub > artifacthub-pkg.yml 
-version: 0.0.7
+version: 0.0.9
 name: containers-block-ssh-port
 displayName: Containers Block SSH Port
-createdAt: 2024-12-12T12:00:02.636621032Z
+createdAt: 2024-12-16T12:39:59.871065961Z
 description: This Policy checks if the container is exposing ssh port.
 license: Apache-2.0
 homeURL: https://github.com/kubewarden/rego-policies
 containersImages:
 - name: policy
-  image: ghcr.io/kubewarden/policies/containers-block-ssh-port:v0.0.7
+  image: ghcr.io/kubewarden/policies/containers-block-ssh-port:v0.0.9
 keywords:
 - compliance
 - SSH
 - containers
 links:
 - name: policy
-  url: https://github.com/kubewarden/rego-policies/releases/download/v0.0.7/policy.wasm
+  url: https://github.com/kubewarden/rego-policies/releases/download/v0.0.9/policy.wasm
 - name: source
   url: https://github.com/kubewarden/rego-policies
 install: |
   The policy can be obtained using [`kwctl`](https://github.com/kubewarden/kwctl):
   ```console
-  kwctl pull ghcr.io/kubewarden/policies/containers-block-ssh-port:v0.0.7
+  kwctl pull ghcr.io/kubewarden/policies/containers-block-ssh-port:v0.0.9
   ```
   Then, generate the policy manifest and tune it to your liking. For example:
   ```console
-  kwctl scaffold manifest -t ClusterAdmissionPolicy registry://ghcr.io/kubewarden/policies/containers-block-ssh-port:v0.0.7
+  kwctl scaffold manifest -t ClusterAdmissionPolicy registry://ghcr.io/kubewarden/policies/containers-block-ssh-port:v0.0.9
   ```
 maintainers:
 - name: Kubewarden developers
