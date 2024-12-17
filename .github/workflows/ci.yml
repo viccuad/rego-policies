@@ -1,0 +1,40 @@
+name: CI
+
+permissions: {}
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  calculate-policy-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      policy-working-dirs: ${{ steps.calculate-policy-dirs.outputs.policy_working_dirs }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: calculate-policy-dirs
+        shell: bash
+        run: |
+          # policy_working_dirs must be an array on the form: [ "policies/Foo", "policies/Bar" ]
+           
+          pushd policies
+          # list only changes of files in `policies/`:
+          git_files="$(git diff --no-color --find-renames --find-copies --name-only main ${{ github.sha }} -- .)"
+
+          # build policy_working_dirs:
+          dir_bash_array=($(echo "$git_files" | cut -d/ -f1,2 | sed -e 's/\(.*\)/"\1"/'))
+          declare -p dir_bash_array # for debug
+          policy_working_dirs=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${dir_bash_array[@]}")
+          echo "policy_working_dirs=$policy_working_dirs" >> $GITHUB_OUTPUT
+
+  continuous-integration:
+    needs: calculate-policy-matrix
+    strategy:
+      matrix:
+        policy-working-dir: ${{ needs.calculate-policy-matrix.outputs.policy-working-dirs }}
+    uses: viccuad/github-actions/.github/workflows/reusable-test-policy-rego.yml@main
+    with:
+      policy-working-dir: ${{ matrix.policy-working-dir }}
